@@ -2,13 +2,6 @@
 	Sun 01 July 2018 19:08:52 PM EDT 
 	Method for Ground Filtration from 3D point clouds. 
 	Ingrid Navarro 
-
-	Based on:
-	    - Fast segmentation of 3D point clouds: a paradigm on LIDAR data (Dimitris Zermas)
-
-	Example commands:	
-	Used with VLP64:
-    	./squeezeGround --in_path data/ground/lidar_no_ground --num_iter 3 [additional options]
 */
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -45,8 +38,9 @@ int main(int argc, char* argv[]) {
 	
 	// Default parameters (if not provided by the user)
 	string inputPath  = "data/ground/lidar_ng/";
-	string outputPath = "data/ground/lidar_g_v";
+	string outputPath = "data/ground/";
 	int numLPR        = 20;
+	int numSegments   = 1;
 	int numIterations = 3;
 	float seedThresh  = 1.2; // 0.4
 	float distThresh  = 0.3; // 0.2
@@ -59,6 +53,7 @@ int main(int argc, char* argv[]) {
 		("in_path",   po::value<string>(), "Input pointclouds path")
 		("out_path",  po::value<string>(),  "Output pointclouds file")
 		("num_lpr",   po::value<int>(),    "Number of seeds needed to get the LPR")
+		("num_seg",   po::value<int>(),    "Number of segments along the x-axis")
 		("num_iter",  po::value<int>(),    "Number of times needed to estimate the ground plane")
 		("th_seed",   po::value<float>(),  "Seeds threshold value")
 		("th_dist",   po::value<float>(),  "Distance threshold value");
@@ -71,6 +66,7 @@ int main(int argc, char* argv[]) {
 	if (vm.count("in_path"))   inputPath     = vm["in_path"].as<string>();
 	if (vm.count("out_path"))  outputPath    = vm["out_path"].as<string>();
 	if (vm.count("num_lpr"))   numLPR        = vm["num_lpr"].as<int>();
+	if (vm.count("num_seg"))   numSegments   = vm["num_seg"].as<int>();
 	if (vm.count("num_iter"))  numIterations = vm["num_iter"].as<int>();
 	if (vm.count("th_seed"))   seedThresh    = vm["th_seed"].as<float>();
 	if (vm.count("th_dist"))   distThresh    = vm["th_dist"].as<float>();
@@ -84,12 +80,13 @@ int main(int argc, char* argv[]) {
 	     << " --- Reading point cloud files from: " << inputPath << endl
 	     << " --- Saving annotated files in: " << outputPath << endl
 	     << " --- Num of iterations: " << numIterations << endl
+	     << " --- Num of segments along the x-axis: " << numSegments << endl
 	     << " --- Num to calculate LPR: " << numLPR << endl
 	     << " --- Seeds threshold: " << seedThresh << endl
 	     << " --- Distance threshold: " << distThresh << endl << endl
 	     << " ---------------- START " << endl;
 	
-	// Get all files from specified directory 
+	// Get all files to process from specified directory 
 	vector<string> files; 
 	getFiles(inputPath, files);
 	
@@ -106,79 +103,92 @@ int main(int argc, char* argv[]) {
 	clock_t startTime = clock(); 
 	for (int i = 0; i < files.size(); i++) {	
 
-		vector<point_XYZIRL> unsortedPointCloudOnHeight;
-		vector<point_XYZIRL> sortedPointCloudOnHeight;
+		vector<point_XYZIRL> unsortedPointCloud;
+		vector<point_XYZIRL> sortedPointCloudOnX;
 		vector<point_XYZIRL> labeledPointCloud;
 		vector<point_XYZIRL> filteredPoints;
-		vector<point_XYZIRL> seeds;
-
+		labeledPointCloud.clear();
+		
 		string filename = files[i];
 		string tempPath = inputPath + filename;
 
 	    // Read point cloud 
-	 	if (!getPointCloud(tempPath, unsortedPointCloudOnHeight)) {
+	 	if (!getPointCloud(tempPath, unsortedPointCloud)) {
 	 		cout << endl << "ERROR: could not locate file." << endl;
 	 		return 0;
 	 	}
 
-		// Sort point cloud based on height axis. Last argument is used to filter 
-		// noisy values (this was done empirically :D )
-		// If filtering it removes points so untill I fix this issue, i wont use the filter
-		copyPointCloud(unsortedPointCloudOnHeight, sortedPointCloudOnHeight);
-		sortPointCloud(sortedPointCloudOnHeight, filteredPoints, true, "z");  
-		
-		// Extract initial seeds based on the seed threshold and an average of the
-		// lowest point that represents the ground. 
-		extractInitialSeedPoints(sortedPointCloudOnHeight, seeds, numLPR, seedThresh);
-		// printPointCloud(seeds, 10);
+		// Sort point cloud based on x axis. Second argument is used to filter 
+		// noisy values (this was done empirically :D ) 
+		// TODO: deal with filtering and chunks
+		copyPointCloud(unsortedPointCloud, sortedPointCloudOnX);
+		sortPointCloud(sortedPointCloudOnX, filteredPoints, false, "x");
 
-		// Start plane estimation 
+		// Create subpointclouds
+		size_t chunk = ceil((double)sortedPointCloudOnX.size() / numSegments);
+		vector<point_XYZIRL>::iterator start = sortedPointCloudOnX.begin();
+		int pcl = 0;
 		int count = 0;
-		if (seeds.size()) {
-		 	for (int iter = 0; iter < numIterations; iter++) {
-	 			// cout << endl 
-		 		//      << "\tEstimate ground plane ITERATION [" << iter + 1 <<" / " << numIterations << "]" << endl
-		 		//      << "\t\t--- Current seed points: " << seeds.size() << endl;
-				
-				//	The linear model to solve is: ax + by +cz + d = 0
-		        //   		where; N = [a b c]     X = [x y z], 
-				//		           d = -(N.transpose * X)
-		 		MatrixXf xyzMeans  = getSeedMeans(seeds);
-		     	MatrixXf normal = estimatePlaneNormal(seeds, xyzMeans);
-			    float negDist = -(normal.transpose() * xyzMeans)(0, 0); // d = -(n.T * X)
-			    float currDistThresh = distThresh - negDist;            // Max ground distance of current model
-		   		// cout << "\t\t--- Current distance threshold: " << currDistThresh << endl;
-		        
-		        // Calculate the distance for each point and compare it with current threshold to 
-		        // determine if it is a ground point or not. 
-		        seeds.clear();           			
-		        // cout << "\tLabel ground points..."; // New ground points will be used as seeds
-		        
-		        // TODO: fix this mess 
-		        if (iter < numIterations-1) {  // We are still estimating planes so we filter the noise
-			        for (int i = 0; i < sortedPointCloudOnHeight.size(); i++) {
-			    		MatrixXf point = convertPointToMatXf(sortedPointCloudOnHeight[i]);		
-			   			if (getDistance(point, normal) < currDistThresh) {
-			   				seeds.push_back(sortedPointCloudOnHeight[i]);
-			   			}
-					}
-		        } else { // Here we will consider the noise as a point ground 
-		        	labeledPointCloud.clear();
-		        	copyPointCloud(unsortedPointCloudOnHeight, labeledPointCloud); 
-		        	for (int i = 0; i < unsortedPointCloudOnHeight.size(); i++) {
-			    		MatrixXf point = convertPointToMatXf(unsortedPointCloudOnHeight[i]);		
-			   			if (getDistance(point, normal) < currDistThresh && unsortedPointCloudOnHeight[i].l == 0) {
-			   				labeledPointCloud[i].l = GROUND; // Ground class  	
-			   				count++;
-			   			}
-					}
-		        }
-				// cout << "Done." << endl;  
-			}
-			cout << "Processed files: " << i + 1 << "/" << files.size() 
-			     << " with " << count << " ground points. "<< endl;
-		 	saveToFile(labeledPointCloud, newDir, filename, true); 
-		} else cout << "No seeds extracted." << endl;
+		for(size_t it = 0; it < sortedPointCloudOnX.size(); it += chunk) {
+    		
+    		vector<point_XYZIRL> sortedPointCloudOnZ(start+it, start+std::min<size_t>(it+chunk, sortedPointCloudOnX.size()));
+    		filteredPoints.clear();
+    		sortPointCloud(sortedPointCloudOnZ, filteredPoints, true, "z");
+
+    		// Extract initial seeds based on the seed threshold and an average of the
+			// lowest point that represents the ground. 
+			vector<point_XYZIRL> seeds;
+			extractInitialSeedPoints(sortedPointCloudOnZ, seeds, numLPR, seedThresh);
+			// printPointCloud(seeds, 10);
+			// Start plane estimation 
+			if (seeds.size()) {
+			 	for (int iter = 0; iter < numIterations; iter++) {
+		    		// cout << endl 
+			 		//      << "\tEstimate ground plane ITERATION [" << iter + 1 <<" / " << numIterations << "]" << endl
+			 		//      << "\t\t--- Current seed points: " << seeds.size() << endl;
+					
+					//	The linear model to solve is: ax + by +cz + d = 0
+			        //   		where; N = [a b c]     X = [x y z], 
+					//		           d = -(N.transpose * X)
+			 		MatrixXf xyzMeans  = getSeedMeans(seeds);
+			     	MatrixXf normal = estimatePlaneNormal(seeds, xyzMeans);
+				    float negDist = -(normal.transpose() * xyzMeans)(0, 0); // d = -(n.T * X)
+				    float currDistThresh = distThresh - negDist;            // Max ground distance of current model
+			   		// cout << "\t\t--- Current distance threshold: " << currDistThresh << endl;
+			        
+			        // Calculate the distance for each point and compare it with current threshold to 
+			        // determine if it is a ground point or not. 
+			        seeds.clear();           			
+			        // cout << "\tLabel ground points..."; // New ground points will be used as seeds
+			        
+			        // TODO: fix this mess 
+			        if (iter < numIterations-1) {  // We are still estimating planes so we filter the noise
+				        for (int i = 0; i < sortedPointCloudOnZ.size(); i++) {
+				    		MatrixXf point = convertPointToMatXf(sortedPointCloudOnZ[i]);		
+				   			if (getDistance(point, normal) < currDistThresh) {
+				   				seeds.push_back(sortedPointCloudOnZ[i]);
+				   			}
+						}
+			        } else { // Here we will consider the noise as a point ground 
+			        	for (int i = 0; i < sortedPointCloudOnZ.size(); i++) {
+				    		MatrixXf point = convertPointToMatXf(sortedPointCloudOnZ[i]);		
+				   			if (getDistance(point, normal) < currDistThresh && sortedPointCloudOnZ[i].l == 0) {
+				   				sortedPointCloudOnZ[i].l = GROUND; // Ground class  	
+				   				count++;
+				   			}
+				   			labeledPointCloud.push_back(sortedPointCloudOnZ[i]);
+						}
+			        }
+					// cout << "Done." << endl;  
+				}
+			} else cout << "No seeds extracted." << endl;
+		}
+		cout << "Processed files: " << i + 1 << "/" << files.size() 
+		     << " with " << count << " ground points. "<< endl;
+		for (int f = 0; f < filteredPoints.size(); f++) {
+					labeledPointCloud.push_back(filteredPoints[f]);
+		}
+		saveToFile(labeledPointCloud, newDir, filename, true); 
 	}
 	clock_t finishTime = clock();
 	cout << " ---------------- DONE. " << endl

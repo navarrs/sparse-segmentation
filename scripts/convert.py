@@ -1,30 +1,23 @@
 """
-When converting from .npy to .txt 
-	- Input path to .npy files 
-		data/squeeze/[DIR]/
-	- Output path for .txt files 
-		data/ground/
+author: Ingrid Navarro 
+date: July 11th, 2018
 
-Example:
-	python convert.py --inpath ../data/squeeze/ --outpath ../data/ground/ \
-	--outdir  ng_lidar_64 --conv txt
+Converting from .npy to .txt 
+	python convert.py --inpath ../data/squeeze/ \
+	                  --outpath ../data/ground/ \
+					  --outdir  ng_lidar_64 \
+					  --conv txt
 
-When converting from .txt to .npy
-	- Input path to .txt files 
-		data/ground/[DIR]/ 
-	- Output path for .npy files 
-		data/squeeze
+Converting from .txt to .npy
+	python convert.py --inpath ../data/ground/lidar_ng/ \
+	   				  --outpath ../data/squeeze/ \
+					  --outdir lidar_64 \
+					  --conv npy
 
-Example:
-	python convert.py --inpath ../data/ground/lidar_ng/ --outpath ../data/squeeze/ \
-	--outdir lidar_64 --conv npy
-
-When downsampling 
-   - Input path where the .npy files are
-   		data/squeeze/lidar_64
-   - Output path where the downsampled .npy 
-     files will be saved
-     	data/squeeze/
+Downsampling pointclouds
+   python convert.py --inpath ../data/squeeze/lidar_ng/ \
+   				     --outpath ../data/squeeze/ \
+   				     --conv downs
 """
 from tqdm import tqdm
 import numpy as np
@@ -36,12 +29,10 @@ import os
 
 def makeDir(path, dirN, gnd):
 	"""
-	Create output directory. Provide path, directory name, 
-	and ID to indicate if it was label with / withou ground. 
+	Create output directory. Provide path, directory name, and ID to indicate if it was 
+	labeled with / without ground. 
 		e.g. g_v --> ground, ng_v --> non-ground. 
-	
-	The method will create a new version of the directory if 
-	it already exists.  
+	The method will create a new version of the directory if it already exists.  
 	"""
 	ver = 1
 	newDir = gnd + str(ver) + "_" + dirN
@@ -57,20 +48,16 @@ def makeDir(path, dirN, gnd):
 
 def npyConvert(ipath, opath):
 	"""
-	Convert point cloud files in .txt format to .npy format
-	to be processed by the SqueezeSeg network. Provide
-	input path where the .txt files are and full path of 
-	directory created to save the .npy files. 
-
-	The method will create and .npy files with shape (64, 512, 6)
-	as indicated in the SqueezeSeg approach. 
+	Convert point cloud files in .txt format to .npy format to be processed by the SqueezeSeg
+	network. Provide input path where the .txt files are and full path of directory created to 
+	save the .npy files. The method will create and .npy files with shape (64, 512, 6) as 
+	indicated in the SqueezeSeg approach. 
 	"""
 	numFiles = len(os.listdir(ipath))
 	azimuthLevel = 512
 	zenithLevel  = 64
 	params = 6  # x, y, z, i, r, l
 	npyArr = np.zeros((zenithLevel, azimuthLevel, params))
-	print npyArr.dtype, npyArr.size, npyArr.shape
 
 	print "\nProcessing  {:} .txt files from: {} ".format(numFiles, ipath)
 	with tqdm(total=numFiles) as progressBar:
@@ -91,13 +78,9 @@ def npyConvert(ipath, opath):
 
 def txtConvert(ipath, opath):
 	"""
-	Convert point cloud files in .npy format to .txt format
-	to be processed and annotated by the Ground Filtration 
-	Algorithm. Provide input path where the .npy files are 
-	and full path of directory created to save the .txt files. 
-
-	The method will create and .npy files with shape (64, 512, 6)
-	as indicated in the SqueezeSeg approach. 
+	Convert point cloud files in .npy format to .txt format to be processed and annotated by the 
+	Ground Filtration Algorithm. Provide input path where the .npy files are and full path of 
+	directory created to save the .txt files. 
 	"""
 	numFiles = len(os.listdir(ipath))
 	
@@ -120,16 +103,14 @@ def txtConvert(ipath, opath):
 
 def downSample(ipath, opath):
 	"""
-	Convert the .npy point cloud dataset of the VLP64 into
-	.npy versions of a VLP32 and VLP16. Provide input
-	path of the name of the folder to downsample and the 
-	base name for the output path where the new datasets 
-	will be saved. 
+	Convert the .npy point cloud dataset of the VLP64 into .npy versions of a VLP32 and VLP16. 
+	Provide input path of the name of the folder to downsample and the base name for the output 
+	path where the new datasets will be saved. 
 	"""
 	# Down sampled datasets 
-	outDirs    = ["lidar_2d_z32",  "lidar_2d_z16u", 
-				  "lidar_2d_z16m", "lidar_2d_z16d" ]
-	filenameID = ["z32_", "z16u_", "z16m_", "z16d_"]
+	outDirs    = ["lidar_2d_z32",  "lidar_2d_z16d", 
+				  "lidar_2d_z16m", "lidar_2d_z16u" ]
+	filenameID = ["z32_", "z16d_", "z16m_", "z16u_"]
 
 	# Make the output directories
 	outDirs = [ makeDir(opath, outDirs[p], "ng_v") for p in range(len(outDirs)) ]
@@ -151,10 +132,10 @@ def downSample(ipath, opath):
 				if zenithLevel % 2 == 0: # Downsampled to a 32 beam lidar 
 					xyzirl[0].append(pointCloud64[zenithLevel, :, :])
 
-				if zenithLevel % 4 == 0: # Downsampled to a 16 beam lidar
-					xyzirl[1].append(pointCloud64[zenithLevel+1, :, :]) 
-					xyzirl[2].append(pointCloud64[zenithLevel, :, :])   
-					xyzirl[3].append(pointCloud64[zenithLevel-1, :, :])
+				if zenithLevel % 4 == 1: # Downsampled to a 16 beam lidar
+					xyzirl[1].append(pointCloud64[zenithLevel-1, :, :]) # 0 to 59 (every 4) 
+					xyzirl[2].append(pointCloud64[zenithLevel  , :, :]) # 1 to 60 (every 4)
+					xyzirl[3].append(pointCloud64[zenithLevel+1, :, :]) # 2 to 61 (every 4)
 
 			# Transform lists to .npy files 
 			for pcl in range(len(outDirs)):
@@ -168,14 +149,10 @@ if __name__ == '__main__':
 
 	# Argument parsing 
 	ap = argparse.ArgumentParser()
-	ap.add_argument("--inpath", required=True, 
-			        help="Path to .npy files")
-	ap.add_argument("--outpath", required=True,
-					help="Path to .txt files")
-	ap.add_argument("--outdir", default="lidar_64_g", 
-					help="Name of output directory.")
-	ap.add_argument("--conv", required=True, 
-					help="'npy' or 'txt': type of conversion")
+	ap.add_argument("--inpath", required=True, help="Path to .npy files")
+	ap.add_argument("--outpath", required=True, help="Path to .txt files")
+	ap.add_argument("--outdir", default="lidar_64_g", help="Name of output directory.")
+	ap.add_argument("--conv", required=True, help="'npy' or 'txt': type of conversion")
 	args = vars(ap.parse_args())
 
 	inPath   = args["inpath"]

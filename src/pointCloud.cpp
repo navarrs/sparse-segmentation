@@ -65,17 +65,26 @@ void printPointCloud(const std::vector<point_XYZIRL>& pointCloud, int num) {
 	Returns: 
 	   - Nothing (void) 
    ------------------------------------------------------------ */
-bool compareValuesOnAxis(point_XYZIRL& p1, point_XYZIRL& p2) {
+bool compareValuesOnZAxis(point_XYZIRL& p1, point_XYZIRL& p2) {
 	return p1.z < p2.z;
 }
-void sortPointCloud(std::vector<point_XYZIRL>& pointCloud, bool filter) {
-	sort(pointCloud.begin(), pointCloud.end(), compareValuesOnAxis);
+bool compareValuesOnXAxis(point_XYZIRL& p1, point_XYZIRL& p2) {
+	return p1.x < p2.x;
+}
+void sortPointCloud(std::vector<point_XYZIRL>& pointCloud, std::vector<point_XYZIRL>& filtered, bool filter, std::string axis) {
+
+	if (axis == "z") {
+		sort(pointCloud.begin(), pointCloud.end(), compareValuesOnZAxis);	
+	} else {
+		sort(pointCloud.begin(), pointCloud.end(), compareValuesOnXAxis);	
+	}
 	
 	// Filter noise due to mirror reflection
 	if (filter) {
 		std::vector<point_XYZIRL>::iterator iter = pointCloud.begin();
 		for (int i = 0; i < pointCloud.size(); ++i) {
 			if (pointCloud[i].z < THRESH_ERROR) { 
+				filtered.push_back(pointCloud[i]);
 				iter++;
 			} else {
 				break;

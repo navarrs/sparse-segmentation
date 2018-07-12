@@ -101,6 +101,7 @@ int main(int argc, char* argv[]) {
 	vector<point_XYZIRL> unsortedPointCloud;
 	vector<point_XYZIRL> groundPointCloud;
 	vector<point_XYZIRL> noGroundPointCloud;
+	vector<point_XYZIRL> filteredPoints;
 	
 	clock_t startTime = clock(); 
 
@@ -117,7 +118,7 @@ int main(int argc, char* argv[]) {
 	// Sort point cloud based on provided height axis. 
 	// Last argument is used to filter noise, in current tests I use 
 	// 'false' for VLP16 and 'true' for VLP64
-	sortPointCloud(sortedPointCloudOnHeight, true);  
+	sortPointCloud(sortedPointCloudOnHeight, filteredPoints, true, "z");  
 	// printPointCloud(sortedPointCloudOnHeight, 10); // uncomment to debug
 	
 	// Extract initial seeds based on the seed threshold and an average
