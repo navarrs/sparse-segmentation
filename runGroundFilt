@@ -1,5 +1,5 @@
+git add data/ CMakeLists.txt README.md runGroundFilt runSqueezeSeg readme/ scripts/ src/
 
-# Testing if X sorting was ok
-./refExtractGround --in_path data/ground/lidar_no_ground/2011_09_26_0001_0000000001.txt --out_path data/ground/
-
-# 
+# Test Ground extractor
+./extractGround --inpath ../data/test/ --out_path ../data/ --num_seg 2 --num_lpr 20
+ 

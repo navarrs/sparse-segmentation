@@ -65,19 +65,37 @@ void printPointCloud(const std::vector<point_XYZIRL>& pointCloud, int num) {
 	Returns: 
 	   - Nothing (void) 
    ------------------------------------------------------------ */
+int getZenith(point_XYZIRL p) {
+	float x = p.x;
+	float y = p.y;
+	float z = p.z;
+	float temp = z / sqrt( pow(x, 2) + pow(y, 2) + pow(z, 2));
+	if (isinf(temp)) temp = -1;
+	if (isnan(temp)) temp =  1; 
+	return round(asin(temp)*180.0/PI);
+}
 bool compareValuesOnZAxis(point_XYZIRL& p1, point_XYZIRL& p2) {
 	return p1.z < p2.z;
 }
 bool compareValuesOnXAxis(point_XYZIRL& p1, point_XYZIRL& p2) {
 	return p1.x < p2.x;
 }
+bool compareValuesOnZenith(point_XYZIRL& p1, point_XYZIRL& p2) {
+	return getZenith(p1) > getZenith(p2);
+}
+
+			
+			
+		
 void sortPointCloud(std::vector<point_XYZIRL>& pointCloud, std::vector<point_XYZIRL>& filtered, bool filter, std::string axis) {
 
 	if (axis == "z") {
 		sort(pointCloud.begin(), pointCloud.end(), compareValuesOnZAxis);	
-	} else {
+	} else if (axis == "x") {
 		sort(pointCloud.begin(), pointCloud.end(), compareValuesOnXAxis);	
-	}
+	} else {
+		sort(pointCloud.begin(), pointCloud.end(), compareValuesOnZenith);
+	} 
 	
 	// Filter noise due to mirror reflection
 	if (filter) {
