@@ -1,0 +1,42 @@
+###################################################### 
+#### Generating datasets
+
+# SparseSeg folder tags 
+ng    -> dataset has car, pedestrian, cyclists labels but no ground labels. 
+g     -> dataset has car, pedestrian, cyclists and ground labels
+cpg 	 -> dataset has car, ground labels, and pedestran and cyclist labels were merged.
+vlp64 -> Velodyne VLP64 scans
+vlp32 -> Velodyne VLP32 scans
+vlp16 -> Velodyne VLP16 scans
+vX  	 -> x version of the dataset
+
+# Command to downsample the VLP64 files  
+python scripts/convert.py \
+--inpath [./path/to/input/dataset/] \
+--outpath [./path/to/output/dataset/] \
+--conv downs
+
+# Command to convert the VLP64 .npy files (without ground labels) to .txt files 
+python scripts/convert.py \
+--inpath ./data/squeezed/no_ground/ng_v1_vlp64/ \
+--outpath ./data/ground/ \
+--conv txt
+
+# Command to annotate VLP64 .txt files
+./extractGround --inpath ../data/ground/ng_vlp64_v1/ --outpath ../data/ground/g_vlp64_v --seg 3 --lpr 20
+
+# Command to convert the VLP64 .txt files (with ground labels) to .npy
+python scripts/convert.py \
+--inpath ./data/ground/g_vlp64_v1/ \
+--outpath ./data/squeezed/ground/ \
+--outdir vlp64 \
+--conv npy
+
+# Command to downsample the VLP64 files (with ground labels) 
+python scripts/convert.py \
+--inpath ./data/squeezed/ground/n_vlp64_v1/ \
+--outpath ./data/squeezed/ground/ \
+--conv downs
+ 
+# KITTI network configurations 
+

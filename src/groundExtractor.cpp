@@ -52,8 +52,9 @@ Eigen::MatrixXf getSeedMeans(const std::vector<point_XYZIRL>& seeds) {
 /* -------------------------------------------------------------------------------------------------------------
 	Function: First, compute mean value of each axis from the current seeds. Based on the mean values, compute
 	          the normal that represents the current plane model.To compute the normal (N) calculate the 
-	          covariance matrix of the seed points. Then, obtain the vector with the least sparsity using SVD, 
-	          as it is assumed to be the best representative of the ground.
+	          covariance matrix of the seed points. Then, obtain the vector with the least sparsity by computing
+	          the U matrix using SVD. The vector with the least variance is the last column of this matrix. It 
+	          is a good estimation of the plane's normal. 
 	Parameters: 
 	   - Seed points (vector <point_XYZIRL>)
   ------------------------------------------------------------------------------------------------------------- */
@@ -83,20 +84,17 @@ Eigen::MatrixXf estimatePlaneNormal(const std::vector<point_XYZIRL>& seeds, cons
 	                 xz, yz, zz;
 	covarianceMat /= numSeeds;
 	
-	// Obtain the vector with the least variance by computing the U matrix. This vector corresponds to the
-	// last column as they are ordered in decreasing order. It correponds to the normal (N) needed to compute
-	// the linear model for the plane. 
+	// Compute the normal of the plane
 	Eigen::JacobiSVD<Eigen::MatrixXf> svd(covarianceMat, 0x04); // 0x04 --> Computes U matrix 
 	return svd.matrixU().col(2); // normal
 }
 
-/* ------------------------------------------------------------
-	Function: Compute the distance between the plane normal 
-	          and a point in the point cloud
+/* -------------------------------------------------------------------------------------------------------------
+	Function: Compute the distance between the plane normal and a point in the point cloud
 	Parameters: 
 	   - Plane normal (MatrixXf)
 	   - Point (MatrixXf)
-  ------------------------------------------------------------ */
+  ------------------------------------------------------------------------------------------------------------- */
 float getDistance(Eigen::MatrixXf vec3x1, Eigen::MatrixXf vec1x3) {
      return (vec3x1 * vec1x3)(0, 0);
 }      

@@ -5,7 +5,6 @@ date: July 11th, 2018
 Converting from .npy to .txt 
 	python convert.py --inpath ../data/squeeze/ \
 	                  --outpath ../data/ground/ \
-					  --outdir  ng_lidar_64 \
 					  --conv txt
 
 Converting from .txt to .npy
@@ -35,7 +34,7 @@ def makeDir(path, dirN, gnd):
 	The method will create a new version of the directory if it already exists.  
 	"""
 	ver = 1
-	newDir = gnd + str(ver) + "_" + dirN
+	newDir = gnd + "_" + dirN + "_v" + str(ver)
 	fullPath = path + newDir
 	while os.path.isdir(fullPath):
 		print "Directory {} exists.".format(fullPath)
@@ -82,8 +81,7 @@ def txtConvert(ipath, opath):
 	Ground Filtration Algorithm. Provide input path where the .npy files are and full path of 
 	directory created to save the .txt files. 
 	"""
-	numFiles = len(os.listdir(ipath))
-	
+	numFiles = len(os.listdir(ipath))	
 	print "\nProcessing {:} .npy files from: {}".format(numFiles, ipath)
 	with tqdm(total=numFiles) as progressBar:
 		for file in os.listdir(ipath):
@@ -94,9 +92,11 @@ def txtConvert(ipath, opath):
 			outfile = open(opath + txtFilename, 'a')
 
 			# Each line has a format [X Y Z I R L]
+			num = 0
 			for i, j in itertools.product(range(pointCloud.shape[0]), range(pointCloud.shape[1])):
 				xyzirl = pointCloud[i, j, :] 
-				xyzirl_str = ' '.join(str(k) for k in xyzirl) + '\n'
+				xyzirl_str = ' '.join(str(k) for k in xyzirl) + ' ' + str(num) + '\n'
+				num += 1
 				outfile.write(xyzirl_str)
 			outfile.close()
 			progressBar.update(1)
@@ -108,12 +108,11 @@ def downSample(ipath, opath):
 	path where the new datasets will be saved. 
 	"""
 	# Down sampled datasets 
-	outDirs    = ["lidar_2d_z32",  "lidar_2d_z16d", 
-				  "lidar_2d_z16m", "lidar_2d_z16u" ]
+	outDirs    = ["vlp32",  "vlp16d", "vlp16m", "vlp16u" ]
 	filenameID = ["z32_", "z16d_", "z16m_", "z16u_"]
 
 	# Make the output directories
-	outDirs = [ makeDir(opath, outDirs[p], "ng_v") for p in range(len(outDirs)) ]
+	outDirs = [ makeDir(opath, outDirs[p], "g") for p in range(len(outDirs)) ]
 
 	# Start the downsampling 
 	numFiles = len(os.listdir(ipath))
@@ -151,7 +150,7 @@ if __name__ == '__main__':
 	ap = argparse.ArgumentParser()
 	ap.add_argument("--inpath", required=True, help="Path to .npy files")
 	ap.add_argument("--outpath", required=True, help="Path to .txt files")
-	ap.add_argument("--outdir", default="lidar_64_g", help="Name of output directory.")
+	ap.add_argument("--outdir", default="vlp64", help="Name of output directory.")
 	ap.add_argument("--conv", required=True, help="'npy' or 'txt': type of conversion")
 	args = vars(ap.parse_args())
 
@@ -163,9 +162,9 @@ if __name__ == '__main__':
 	# Process data
 	start = t.time() # Program start
 	if convType == "npy": # Convert all .txt to .npy
-		npyConvert(inPath, makeDir(outPath, outDir, "g_v"))
+		npyConvert(inPath, makeDir(outPath, outDir, "g"))
 	elif convType == "txt":
-		txtConvert(inPath, makeDir(outPath, outDir, "g_v"))
+		txtConvert(inPath, makeDir(outPath, outDir, "ng"))
 	elif convType == "downs":
 		downSample(inPath, outPath)
 	else:

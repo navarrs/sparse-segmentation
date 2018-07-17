@@ -53,7 +53,7 @@ if __name__ == '__main__':
 			files.append(filename)
 			txtAll.write(filename + '\n')
 		shuffled = random.sample(files, len(files))
-		perc = train * len(shuffled) / 100 
+		perc = int(train) * len(shuffled) / 100 
 		txtTrain.write("\n".join(shuffled[:perc]))
 		txtVal.write("\n".join(shuffled[perc:]))
 

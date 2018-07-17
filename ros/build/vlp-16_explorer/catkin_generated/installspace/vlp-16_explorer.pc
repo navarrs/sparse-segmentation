@@ -1,0 +1,8 @@
+prefix=/home/inavars/Desktop/projects/SparseSeg/ros/install
+
+Name: vlp-16_explorer
+Description: Description of vlp-16_explorer
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/inavars/Desktop/projects/SparseSeg/ros/install/lib 
+Requires: 

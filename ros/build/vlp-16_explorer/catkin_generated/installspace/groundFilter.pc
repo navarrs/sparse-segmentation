@@ -1,0 +1,8 @@
+prefix=/home/inavars/Desktop/projects/SparseSeg/ros/install
+
+Name: groundFilter
+Description: Description of groundFilter
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/inavars/Desktop/projects/SparseSeg/ros/install/lib 
+Requires: 
