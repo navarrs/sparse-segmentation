@@ -41,7 +41,8 @@ int main(int argc, char* argv[]) {
 		("seg",     po::value<int>()->default_value(1), "Number of segments along the x-axis")
 		("iter",    po::value<int>()->default_value(3), "Number of times needed to estimate the ground plane")
 		("thseed",  po::value<float>()->default_value(1.2), "Seeds threshold value")
-		("thdist",  po::value<float>()->default_value(0.3), "Distance threshold value");
+		("thdist",  po::value<float>()->default_value(0.3), "Distance threshold value")
+		("method",  po::value<bool>()->default_value(true), "Use means or medians");
 	po::variables_map opts;
 	po::store(po::command_line_parser(argc, argv).options(description).run(), opts);
 	try { po::notify(opts);	}
@@ -57,6 +58,7 @@ int main(int argc, char* argv[]) {
 	float numIters    = opts["iter"].as<int>();
 	float seedThresh  = opts["thseed"].as<float>();
 	float distThresh  = opts["thdist"].as<float>();
+	bool method       = opts["method"].as<bool>();
 
 	// --------------------------------------------------------------------------------------------
 	// Start algorithm
@@ -127,9 +129,15 @@ int main(int argc, char* argv[]) {
 					//	The linear model to solve is: ax + by +cz + d = 0
 			        //   		where; N = [a b c]     X = [x y z], 
 					//		           d = -(N.transpose * X)
-			 		MatrixXf xyzMeans  = getSeedMeans(seeds);
-			     	MatrixXf normal = estimatePlaneNormal(seeds, xyzMeans);
-				    float negDist = -(normal.transpose() * xyzMeans)(0, 0); // d = -(n.T * X)
+					MatrixXf xyzM; // Means or medians
+					MatrixXf normal;
+					if (method) {
+						xyzM  = getSeedMeans(seeds);
+					} else {
+						xyzM = getSeedMedians(seeds);
+					}
+			 		normal = estimatePlaneNormal(seeds, xyzM);
+				    float negDist = -(normal.transpose() * xyzM)(0, 0); // d = -(n.T * X)
 				    float currDistThresh = distThresh - negDist;            // Max ground distance of current model
 			        
 			        // Calculate the distance for each point and compare it with current threshold to 

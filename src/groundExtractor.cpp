@@ -29,6 +29,40 @@ void extractInitialSeedPoints(const std::vector<point_XYZIRL>& pointCloud, std::
 }
 
 /* -------------------------------------------------------------------------------------------------------------
+	Function: Compute median value of each axis of the seeds. The values of these means are assumed to be good 
+			  representative of the dispersion of the plane.
+	Parameters: 
+	   - Seed points (vector <point_XYZIRL>)
+  ------------------------------------------------------------------------------------------------------------- */
+bool cmpY(point_XYZIRL& p1, point_XYZIRL& p2) {
+	return p1.y < p2.y;	
+} 
+bool cmpZ(point_XYZIRL& p1, point_XYZIRL& p2) {
+	return p1.z < p2.z;
+}
+bool cmpX(point_XYZIRL& p1, point_XYZIRL& p2) {
+	return p1.x < p2.x;
+}
+Eigen::MatrixXf getSeedMedians(const std::vector<point_XYZIRL>& seeds) {
+	Eigen::MatrixXf xyzMedians(3, 1);
+	size_t size = seeds.size();
+	std::vector<point_XYZIRL> tempVect;
+	tempVect.assign(seeds.begin(), seeds.end());
+	
+	// Get median of X
+	sort(tempVect.begin(), tempVect.end(), cmpX);
+	xyzMedians(0, 0) = size % 2 == 0 ? (tempVect[size / 2 - 1].x + tempVect[size / 2 ].x) / 2 : tempVect[size / 2].x;
+	// Get median of Y 
+	sort(tempVect.begin(), tempVect.end(), cmpY);
+	xyzMedians(1, 0) = size % 2 == 0 ? (tempVect[size / 2 - 1].y + tempVect[size / 2 ].y) / 2 : tempVect[size / 2].y;
+	// Get median of Z 
+	sort(tempVect.begin(), tempVect.end(), cmpX);
+	xyzMedians(2, 0) = size % 2 == 0 ? (tempVect[size / 2 - 1].z + tempVect[size / 2 ].z) / 2 : tempVect[size / 2].z; 
+
+	return xyzMedians;
+}
+
+/* -------------------------------------------------------------------------------------------------------------
 	Function: Compute mean value of each axis of the seeds. The values of these means are assumed to be good 
 			  representative of the dispersion of the plane.
 	Parameters: 

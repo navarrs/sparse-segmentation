@@ -17,6 +17,10 @@ Downsampling pointclouds
    python convert.py --inpath ../data/squeeze/lidar_ng/ \
    				     --outpath ../data/squeeze/ \
    				     --conv downs
+Merging classes 
+	python convert.py --inpath ../data/squeeze/ \
+					  --outpath ../data/squeeze/ \
+					  --convs mrg 
 """
 from tqdm import tqdm
 import numpy as np
@@ -45,7 +49,7 @@ def makeDir(path, dirN, gnd):
 	os.makedirs(fullPath)
 	return fullPath
 
-def npyConvert(ipath, opath):
+def npyConvert(ipath, opath, azimuth, zenith):
 	"""
 	Convert point cloud files in .txt format to .npy format to be processed by the SqueezeSeg
 	network. Provide input path where the .txt files are and full path of directory created to 
@@ -53,10 +57,8 @@ def npyConvert(ipath, opath):
 	indicated in the SqueezeSeg approach. 
 	"""
 	numFiles = len(os.listdir(ipath))
-	azimuthLevel = 512
-	zenithLevel  = 64
 	params = 6  # x, y, z, i, r, l
-	npyArr = np.zeros((zenithLevel, azimuthLevel, params))
+	npyArr = np.zeros((zenith, azimuth, params))
 
 	print "\nProcessing  {:} .txt files from: {} ".format(numFiles, ipath)
 	with tqdm(total=numFiles) as progressBar:
@@ -65,11 +67,11 @@ def npyConvert(ipath, opath):
 			 	txtArr = np.loadtxt(ipath + file)
 			 	# Convert .txt into a (64, 512, 6) np.array
 			 	currentMin = 0
-				currentMax = azimuthLevel
-			 	for i in range(zenithLevel):
-			 		npyArr[i, :, :] = txtArr[currentMin:currentMax, :]
+				currentMax = azimuth
+			 	for i in range(zenith):
+			 		npyArr[i, :, :] = txtArr[currentMin:currentMax, 0:6]
 			 		currentMin = currentMax
-			 		currentMax += azimuthLevel
+			 		currentMax += azimuth
 			# Save to .npy file 
 			npyFilename = '/' + file.split('.')[0] + '.npy'
 			np.save(opath + npyFilename, npyArr)
@@ -100,6 +102,36 @@ def txtConvert(ipath, opath):
 				outfile.write(xyzirl_str)
 			outfile.close()
 			progressBar.update(1)
+
+def mergeClass(ipath, opath, cls1, cls2):
+	"""
+	Merge classes on the point cloud.
+	"""
+	numFiles = len(os.listdir(ipath))	
+	print "\nProcessing {:} .npy files from: {}".format(numFiles, ipath)
+	with tqdm(total=numFiles) as progressBar:
+		for file in os.listdir(ipath):
+			# Read current point cloud and create file 
+			pointCloudPath = ipath + file
+			pointCloud = np.load(pointCloudPath)
+
+			txtFilename = '/' + file.split('.')[0] + '.txt'
+			outfile = open(opath + txtFilename, 'a')
+
+			# Each line has a format [X Y Z I R L]
+			num = 0
+			for i, j in itertools.product(range(pointCloud.shape[0]), range(pointCloud.shape[1])):
+				xyzirl = pointCloud[i, j, :] 
+				if int(xyzirl[5]) == cls2:
+					xyzirl[5] = cls1
+
+				xyzirl_str = ' '.join(str(k) for k in xyzirl) + ' ' + str(num) + '\n'
+				num += 1
+				outfile.write(xyzirl_str)
+			outfile.close()
+			progressBar.update(1)
+
+
 
 def downSample(ipath, opath):
 	"""
@@ -144,32 +176,42 @@ def downSample(ipath, opath):
 
 			progressBar.update(1)
 
-if __name__ == '__main__':
-
+def main():
 	# Argument parsing 
 	ap = argparse.ArgumentParser()
-	ap.add_argument("--inpath", required=True, help="Path to .npy files")
-	ap.add_argument("--outpath", required=True, help="Path to .txt files")
-	ap.add_argument("--outdir", default="vlp64", help="Name of output directory.")
-	ap.add_argument("--conv", required=True, help="'npy' or 'txt': type of conversion")
+	ap.add_argument("--inpath",  required=True,   help="Path to .npy files")
+	ap.add_argument("--outpath", required=True,   help="Path to .txt files")
+	ap.add_argument("--conv",    required=True,   help="'npy' or 'txt': type of conversion")
+	ap.add_argument("--outdir",  default="vlp64", help="Name of output directory.")
+	ap.add_argument("--azimuth", default=512,     help="Azimuth used in processed point clouds")
+	ap.add_argument("--zenith",  default=64,      help="Number of point cloud rings")
+	ap.add_argument("--cls1",    default=2,       help="Class to keep")
+	ap.add_argument("--cls2",    default=3,       help="Class to merge")
 	args = vars(ap.parse_args())
 
 	inPath   = args["inpath"]
 	outPath  = args["outpath"]
 	outDir   = args["outdir"]
+	azimuth  = args["azimuth"]
+	zenith   = args["zenith"]
 	convType = args["conv"]
+	clsKeep  = args["cls1"]
+	clsMerge = args["cls2"]
 
 	# Process data
 	start = t.time() # Program start
-	if convType == "npy": # Convert all .txt to .npy
-		npyConvert(inPath, makeDir(outPath, outDir, "g"))
+	if convType == "npy": 
+		npyConvert(inPath, makeDir(outPath, outDir, "mcg"), azimuth, zenith)
 	elif convType == "txt":
 		txtConvert(inPath, makeDir(outPath, outDir, "ng"))
-	elif convType == "downs":
+	elif convType == "down":
 		downSample(inPath, outPath)
+	elif convType == "merge":
+		mergeClass(inPath, makeDir(outPath, outDir, "mc"), clsKeep, clsMerge)
 	else:
 		print "Error: invalid argument"
 		exit()
 	print "Execution Time: ", t.time() - start, "s"
 
-
+if __name__ == '__main__':
+	main()

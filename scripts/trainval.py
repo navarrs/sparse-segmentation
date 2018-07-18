@@ -49,9 +49,10 @@ if __name__ == '__main__':
 		
 		files = []
 		for file in os.listdir(currentDir):
-			filename = file.split('.')[0]
-			files.append(filename)
-			txtAll.write(filename + '\n')
+			if file.endswith(".npy"):
+				filename = file.split('.')[0]
+				files.append(filename)
+				txtAll.write(filename + '\n')
 		shuffled = random.sample(files, len(files))
 		perc = int(train) * len(shuffled) / 100 
 		txtTrain.write("\n".join(shuffled[:perc]))

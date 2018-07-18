@@ -40,3 +40,16 @@ python scripts/convert.py \
  
 # KITTI network configurations 
 
+kitti_squeezeSeg_config       --> VLP64, classes: pedestrian, cyclist, car, unknown
+kitti_squeezeSeg_config_ext   --> VLP64, classes: pedestrian, cyclist, car, ground, unknown
+kitti_squeezeSeg_config_red   --> VLP64, classes: person (pedestrian and cyclist), car, ground, unkown
+
+kitti_squeezeSeg32_config     --> VLP32, classes: pedestrian, cyclist, car, unknown
+kitti_squeezeSeg32_config_ext --> VLP32, classes: pedestrian, cyclist, car, ground, unknown
+kitti_squeezeSeg32_config_red --> VLP32, classes: person (pedestrian and cyclist), car, ground, unkown
+
+kitti_squeezeSeg16_config     --> VLP16, classes: pedestrian, cyclist, car, unknown
+kitti_squeezeSeg16_config_ext --> VLP16, classes: pedestrian, cyclist, car, ground, unknown
+kitti_squeezeSeg16_config_red --> VLP16, classes: person (pedestrian and cyclist), car, ground, unkown
+
+
