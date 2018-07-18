@@ -1,0 +1,24 @@
+Simple example used to read Velodyne 16 data.
+
+Use:
+
+First, untar the code inside the src directory in your ROS workspace. Build it using
+   $ catkin_make
+Once that your code is built successfully, you can run it directly, just for a quick test:
+   $ ./devel/lib/vlp-16_explorer/vlp-16_explorer_node
+
+Don't run it yet; follow the following sequence
+
+1) In one terminal run
+   $ roscore
+2) Open a second terminal to define a parameter containing name of the topic which contains Velodyne data
+   $ rosparam set /vlp16_explorer/vlp16_topic /velodyne_points
+3) Confirm that the parameter is stored in the parameter server using
+   $ rosparam list
+
+4) Go back to the terminal where you built your code and run it
+
+5) Open another terminal to replay bag file with VLP-16 data
+   $ rosbag play 2018-01-19-10-56-08.bag
+
+5) If all is well you should see that your code reads each frame and reports the number of points.

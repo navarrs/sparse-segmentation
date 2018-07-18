@@ -1,0 +1,2 @@
+velodyne/velodyne:velodyne/velodyne_driver:velodyne/velodyne_laserscan:velodyne/velodyne_msgs:velodyne/velodyne_pointcloud:vlp-16_explorer
+-DCATKIN_DEVEL_PREFIX=/home/inavars/Desktop/projects/SparseSeg/ros/devel -DCMAKE_INSTALL_PREFIX=/home/inavars/Desktop/projects/SparseSeg/ros/install -G Unix Makefiles

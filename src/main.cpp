@@ -31,7 +31,6 @@ int getFiles(string path, vector<string>& files);
 void saveToFile(const vector<point_XYZIRL>& pointCloud, string dirName, string name, bool type);
 
 int main(int argc, char* argv[]) {
-
 	// Parse arguments
 	po::options_description description("Usage");
 	description.add_options()
@@ -45,9 +44,8 @@ int main(int argc, char* argv[]) {
 		("thdist",  po::value<float>()->default_value(0.3), "Distance threshold value");
 	po::variables_map opts;
 	po::store(po::command_line_parser(argc, argv).options(description).run(), opts);
-	try {
-		po::notify(opts);	
-	} catch (exception& e) {
+	try { po::notify(opts);	}
+	catch (exception& e) {
 		cerr << "Error: " << e.what() << endl;
 		return 1;
 	}
@@ -77,12 +75,12 @@ int main(int argc, char* argv[]) {
 	
 	// Get all files to be process from the specified directory 
 	vector<string> files; 
-	if (getFiles(inputPath, files)) { return 1; }
+	if (getFiles(inputPath, files)) return 1;
 	
 	// Create output directory
 	int version = 0;
 	string newDir;
-	do {
+	do { 
 		newDir = outputPath + boost::lexical_cast<std::string>(++version);
 	} while (stat(newDir.c_str(), &sb) == 0); // create new version if file exists
 	cout << "Creating directory " << newDir << endl;
@@ -95,8 +93,6 @@ int main(int argc, char* argv[]) {
 		vector<point_XYZIRL> pointCloud;
 		vector<point_XYZIRL> labeledPointCloud;
 		vector<point_XYZIRL> filteredPoints;
-		labeledPointCloud.clear();
-		
 		string filename = files[i];
 		string tempPath = inputPath + filename;
 
@@ -119,14 +115,11 @@ int main(int argc, char* argv[]) {
     		// Create subpointcloud
     		vector<point_XYZIRL> sortedPointCloudOnZ(start+it, start+std::min<size_t>(it+chunk, pointCloud.size()));
     		filteredPoints.clear();
-    		// printPointCloud(seeds, 10);
     		sortPointCloud(sortedPointCloudOnZ, filteredPoints, true, "z");
-    		// printPointCloud(seeds, 10);
 
     		// Extract initial seeds 
 			vector<point_XYZIRL> seeds;
 			extractInitialSeedPoints(sortedPointCloudOnZ, seeds, numLPR, seedThresh);
-			// printPointCloud(seeds, 10);
 			
 			// Start plane estimation 
 			if (seeds.size()) {
@@ -142,36 +135,30 @@ int main(int argc, char* argv[]) {
 			        // Calculate the distance for each point and compare it with current threshold to 
 			        // determine if it is a ground point or not. 
 			        seeds.clear();           			
-			        
-			        // TODO: fix this mess 
-			        if (iter < numIters-1) {  // We are still estimating planes so we filter the noise
+			        if (iter < numIters-1) {  // Continue estimating plane
 				        for (int i = 0; i < sortedPointCloudOnZ.size(); i++) {
 				    		MatrixXf point = convertPointToMatXf(sortedPointCloudOnZ[i]);		
 				   			if (getDistance(point, normal) < currDistThresh) {
 				   				seeds.push_back(sortedPointCloudOnZ[i]);
 				   			}
 						}
-			        } else { // Here we will consider the noise as a point ground 
+			        } else { // Label final point cloud segment
 			        	for (int i = 0; i < sortedPointCloudOnZ.size(); i++) {
 				    		MatrixXf point = convertPointToMatXf(sortedPointCloudOnZ[i]);		
 				   			if (getDistance(point, normal) < currDistThresh && sortedPointCloudOnZ[i].l == 0) {
 				   				sortedPointCloudOnZ[i].l = GROUND_LABEL; 	
 				   				count++;
 				   			}
-				   			labeledPointCloud.push_back(sortedPointCloudOnZ[i]);
-						}
-			        }
-					// cout << "Done." << endl;  
+						}	
+						// Add filtered points to the point cloud
+						labeledPointCloud.insert(labeledPointCloud.end(), sortedPointCloudOnZ.begin(), sortedPointCloudOnZ.end());  
+						labeledPointCloud.insert(labeledPointCloud.end(), filteredPoints.begin(), filteredPoints.end());
+			        } 
 				}
 			} else cout << "No seeds extracted." << endl;
 		}
-		cout << "Processed files: " << i + 1 << "/" << files.size() << " with " << count << " ground points. "<< endl;
-		
-		// Add filtered points to the point cloud
-		for (int f = 0; f < filteredPoints.size(); f++) {
-			labeledPointCloud.push_back(filteredPoints[f]);
-		}
-		sortPointCloud(labeledPointCloud, filteredPoints, false, "r"); // Sort based on the ring
+		cout << "Processed files: " << i + 1 << "/" << files.size() << " with " << count << " of " << labeledPointCloud.size() <<  " ground points" << endl;
+		sortPointCloud(labeledPointCloud, filteredPoints, false, "n"); // Sort based on the ring
 		saveToFile(labeledPointCloud, newDir, filename, true); 
 	}
 	clock_t finishTime = clock();
@@ -195,12 +182,9 @@ void saveToFile(const vector<point_XYZIRL>& pointCloud, string dirName, string n
 	 	
 	textfile.open(filename.c_str(), std::fstream::app);
 	for (int i = 0; i < pointCloud.size(); i++) {
-		textfile << pointCloud[i].x << " "
-	   		     << pointCloud[i].y << " " 
-	   		     << pointCloud[i].z << " "
-	  		     << pointCloud[i].i << " " 
-	  		     << pointCloud[i].r << " "
-	  		     << pointCloud[i].l << endl;
+		textfile << pointCloud[i].x << " " << pointCloud[i].y << " " 
+	   		     << pointCloud[i].z << " " << pointCloud[i].i << " " 
+	  		     << pointCloud[i].r << " " << pointCloud[i].l << endl;
 	}
 	textfile.close();
 }

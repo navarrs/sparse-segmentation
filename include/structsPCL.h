@@ -12,6 +12,7 @@ struct point_XYZIRL {
 	float i;  // intensity
 	float r;  // range
 	float l;  // label
+	float n;    // Line number
 }; 
 
 #endif

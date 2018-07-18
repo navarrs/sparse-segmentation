@@ -1,0 +1,8 @@
+prefix=/home/inavars/Desktop/projects/SparseSeg/ros/install
+
+Name: velodyne_driver
+Description: Description of velodyne_driver
+Version: 1.3.0
+Cflags: -I/home/inavars/Desktop/projects/SparseSeg/ros/install/include
+Libs: -L/home/inavars/Desktop/projects/SparseSeg/ros/install/lib -lvelodyne_input
+Requires: diagnostic_updater dynamic_reconfigure nodelet roscpp tf velodyne_msgs
