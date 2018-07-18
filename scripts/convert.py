@@ -89,7 +89,7 @@ def txtConvert(ipath, opath):
 		for file in os.listdir(ipath):
 			# Read current point cloud and create file 
 			pointCloudPath = ipath + file
-			pointCloud = np.load(pointCloudPath)
+			pointCloud = np.load(pointCloudPath).astype(np.float32)
 			txtFilename = '/' + file.split('.')[0] + '.txt'
 			outfile = open(opath + txtFilename, 'a')
 
@@ -113,21 +113,21 @@ def mergeClass(ipath, opath, cls1, cls2):
 		for file in os.listdir(ipath):
 			# Read current point cloud and create file 
 			pointCloudPath = ipath + file
-			pointCloud = np.load(pointCloudPath)
-
-			txtFilename = '/' + file.split('.')[0] + '.txt'
+			pointCloud = np.loadtxt(pointCloudPath)
+		
+			txtFilename = "/" + file.split('.')[0] + '.txt'
 			outfile = open(opath + txtFilename, 'a')
 
 			# Each line has a format [X Y Z I R L]
 			num = 0
-			for i, j in itertools.product(range(pointCloud.shape[0]), range(pointCloud.shape[1])):
-				xyzirl = pointCloud[i, j, :] 
-				if int(xyzirl[5]) == cls2:
-					xyzirl[5] = cls1
+			for i in itertools.product(range(pointCloud.shape[0])):
+				xyzirl = pointCloud[i] 
+			 	if int(xyzirl[5]) == cls2:
+			 		xyzirl[5] = cls1
 
 				xyzirl_str = ' '.join(str(k) for k in xyzirl) + ' ' + str(num) + '\n'
-				num += 1
-				outfile.write(xyzirl_str)
+			 	num += 1
+			 	outfile.write(xyzirl_str)
 			outfile.close()
 			progressBar.update(1)
 
@@ -154,7 +154,7 @@ def downSample(ipath, opath):
 			baseFilename = file.split('.')[0]
 			basePath = ipath + file
 
-			pointCloud64 = np.load(basePath)
+			pointCloud64 = np.load(basePath).astype(np.float32)
 			xyzirl = [[] for _ in range(4)] 
 
 			# The zenith level indicates the lidar ring 
@@ -187,6 +187,7 @@ def main():
 	ap.add_argument("--zenith",  default=64,      help="Number of point cloud rings")
 	ap.add_argument("--cls1",    default=2,       help="Class to keep")
 	ap.add_argument("--cls2",    default=3,       help="Class to merge")
+	ap.add_argument("--label",   default='g',     help="ID to identify type of dataset")
 	args = vars(ap.parse_args())
 
 	inPath   = args["inpath"]
@@ -197,17 +198,18 @@ def main():
 	convType = args["conv"]
 	clsKeep  = args["cls1"]
 	clsMerge = args["cls2"]
+	label    = args["label"]
 
 	# Process data
 	start = t.time() # Program start
 	if convType == "npy": 
-		npyConvert(inPath, makeDir(outPath, outDir, "mcg"), azimuth, zenith)
+		npyConvert(inPath, makeDir(outPath, outDir, label), azimuth, zenith)
 	elif convType == "txt":
-		txtConvert(inPath, makeDir(outPath, outDir, "ng"))
+		txtConvert(inPath, makeDir(outPath, outDir, label))
 	elif convType == "down":
 		downSample(inPath, outPath)
 	elif convType == "merge":
-		mergeClass(inPath, makeDir(outPath, outDir, "mc"), clsKeep, clsMerge)
+		mergeClass(inPath, makeDir(outPath, outDir, label), clsKeep, clsMerge)
 	else:
 		print "Error: invalid argument"
 		exit()

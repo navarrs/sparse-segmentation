@@ -1,6 +1,6 @@
 /*	
 	Sun 01 July 2018 19:08:52 PM EDT 
-	Method for Ground Filtration from 3D point clouds. 
+	Ground Labeling Algorithm - GLA
 	Ingrid Navarro 
 */
 #include <boost/program_options/options_description.hpp>

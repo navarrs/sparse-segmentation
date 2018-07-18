@@ -1,5 +1,0 @@
-git add data/ CMakeLists.txt README.md runGroundFilt runSqueezeSeg readme/ scripts/ src/
-
-# Test Ground extractor
-./extractGround --inpath ../data/test/ --out_path ../data/ --num_seg 2 --num_lpr 20
- 
