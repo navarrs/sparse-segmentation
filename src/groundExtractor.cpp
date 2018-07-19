@@ -9,20 +9,33 @@
 	   - Number of LPR points to calculate average LPR (int)
 	   - Seed treshold
  ------------------------------------------------------------------------------------------------------------- */
-void extractInitialSeedPoints(const std::vector<point_XYZIRL>& pointCloud, std::vector<point_XYZIRL>& seedPoints, int numLPR, float seedThresh) {
+bool cmpZF(float p1, float p2) {
+	return p1 < p2;
+}
+void extractInitialSeedPoints(const std::vector<point_XYZIRL>& pointCloud, std::vector<point_XYZIRL>& seedPoints, int numLPR, float seedThresh, bool method) {
 	// Compute average LPR
-	float sum = 0.0;
+	
 	int count = 0;
-	for (int i = 0; i < numLPR && i < pointCloud.size(); i++) {
-		sum += pointCloud[i].z;
-		count++;
+	float LPR;
+	if (method) { // Get the mean value
+		float sum = 0.0;
+		for (int i = 0; i < numLPR && i < pointCloud.size(); i++) {
+			sum += pointCloud[i].z;
+			count++;
+		}
+		LPR = count != 0 ? sum / count : 0.0; 
+	} else { // Get the median value
+		std::vector<float> tempZ;
+		for (int i = 0; i < numLPR && i < pointCloud.size(); i++) {
+			tempZ.push_back(pointCloud[i].z);
+			count++;
+		}
+		sort(tempZ.begin(), tempZ.end(), cmpZF);
+		LPR = count % 2 == 0 ? (tempZ[count / 2 - 1] + tempZ[count / 2 ]) / 2 : tempZ[count / 2]; 
 	}
-
-	// Extract seeds based on the LPR
-	float avgLPR = count != 0 ? sum / count : 0.0; 
-	seedPoints.clear();
+	
 	for (int i = 0; i < pointCloud.size(); i++) {
-		if (pointCloud[i].z < avgLPR + seedThresh) {
+		if (pointCloud[i].z < LPR + seedThresh) {
 			seedPoints.push_back(pointCloud[i]);
 		}
 	}

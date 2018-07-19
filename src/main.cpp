@@ -1,7 +1,7 @@
 /*	
 	Sun 01 July 2018 19:08:52 PM EDT 
 	Ground Labeling Algorithm - GLA
-	Ingrid Navarro 
+	By Ingrid Navarro 
 */
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -18,7 +18,6 @@
 #include "includes.h"
 #include "pointCloud.h"
 
-using namespace std;
 namespace po = boost::program_options;
 using Eigen::JacobiSVD;
 using Eigen::VectorXf;
@@ -27,16 +26,16 @@ using Eigen::MatrixXf;
 DIR * dir;
 struct dirent *ent;
 struct stat sb;
-int getFiles(string path, vector<string>& files);
-void saveToFile(const vector<point_XYZIRL>& pointCloud, string dirName, string name, bool type);
+int getFiles(std::string path, std::vector<std::string>& files);
+void saveToFile(const std::vector<point_XYZIRL>& pointCloud, std::string dirName, std::string name, bool type);
 
 int main(int argc, char* argv[]) {
 	// Parse arguments
 	po::options_description description("Usage");
 	description.add_options()
 		("help", "Program usage.")
-		("inpath",  po::value<string>()->default_value("data/ground/lidar_ng"), "Input pointclouds path")
-		("outpath", po::value<string>()->default_value("data/ground/"), "Output pointclouds file")
+		("inpath",  po::value<std::string>()->default_value("data/ground/lidar_ng"), "Input pointclouds path")
+		("outpath", po::value<std::string>()->default_value("data/ground/"), "Output pointclouds file")
 		("lpr",     po::value<int>()->default_value(20), "Number of seeds needed to get the LPR")
 		("seg",     po::value<int>()->default_value(1), "Number of segments along the x-axis")
 		("iter",    po::value<int>()->default_value(3), "Number of times needed to estimate the ground plane")
@@ -45,14 +44,18 @@ int main(int argc, char* argv[]) {
 		("method",  po::value<bool>()->default_value(true), "Use means or medians");
 	po::variables_map opts;
 	po::store(po::command_line_parser(argc, argv).options(description).run(), opts);
-	try { po::notify(opts);	}
-	catch (exception& e) {
-		cerr << "Error: " << e.what() << endl;
+	try { 
+		po::notify(opts);	
+	} catch (std::exception& e) {
+		std::cerr << "Error: " << e.what() << std::endl;
 		return 1;
 	}
-	if (opts.count("help")) { cout << description; return 1; }
-	string inputPath  = opts["inpath"].as<string>();
-	string outputPath = opts["outpath"].as<string>();
+	if (opts.count("help")) { 
+		std::cout << description; 
+		return 1; 
+	}
+	std::string inputPath  = opts["inpath"].as<std::string>();
+	std::string outputPath = opts["outpath"].as<std::string>();
 	int numLPR        = opts["lpr"].as<int>();
 	int numSegments   = opts["seg"].as<int>();
 	float numIters    = opts["iter"].as<int>();
@@ -62,45 +65,46 @@ int main(int argc, char* argv[]) {
 
 	// --------------------------------------------------------------------------------------------
 	// Start algorithm
-	cout << " --------------------------------------- " << endl	
-    	 << "|      Ground Extraction Algorithm      |" << endl
-    	 << " --------------------------------------- " << endl
-	     << " ------------ CONFIGURATION " << endl
-	     << " --- Reading point cloud files from: " << inputPath << endl
-	     << " --- Saving annotated files in: " << outputPath << endl
-	     << " --- Num of iterations: " << numIters << endl
-	     << " --- Num of segments along the x-axis: " << numSegments << endl
-	     << " --- Num to calculate LPR: " << numLPR << endl
-	     << " --- Seeds threshold: " << seedThresh << endl
-	     << " --- Distance threshold: " << distThresh << endl << endl
-	     << " ---------------- START " << endl; 
+	std::cout 
+		<< " --------------------------------------- " << std::endl	
+    	<< "|      Ground Extraction Algorithm      |" << std::endl
+    	<< " --------------------------------------- " << std::endl
+	    << " ------------ CONFIGURATION " << std::endl
+	    << " --- Reading point cloud files from: " << inputPath << std::endl
+	    << " --- Saving annotated files in: " << outputPath << std::endl
+	    << " --- Num of iterations: " << numIters << std::endl
+	    << " --- Num of segments along the x-axis: " << numSegments << std::endl
+	    << " --- Num to calculate LPR: " << numLPR << std::endl
+	    << " --- Seeds threshold: " << seedThresh << std::endl
+	    << " --- Distance threshold: " << distThresh << std::endl << std::endl
+	    << " ---------------- START " << std::endl; 
 	
 	// Get all files to be process from the specified directory 
-	vector<string> files; 
+	std::vector<std::string> files; 
 	if (getFiles(inputPath, files)) return 1;
 	
 	// Create output directory
 	int version = 0;
-	string newDir;
+	std::string newDir;
 	do { 
 		newDir = outputPath + boost::lexical_cast<std::string>(++version);
 	} while (stat(newDir.c_str(), &sb) == 0); // create new version if file exists
-	cout << "Creating directory " << newDir << endl;
+	std::cout << "Creating directory " << newDir << std::endl;
 	mkdir(newDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH); 
 
 	// Annotate ground points
 	clock_t startTime = clock(); 
 	for (int i = 0; i < files.size(); i++) {	
 
-		vector<point_XYZIRL> pointCloud;
-		vector<point_XYZIRL> labeledPointCloud;
-		vector<point_XYZIRL> filteredPoints;
-		string filename = files[i];
-		string tempPath = inputPath + filename;
+		std::vector<point_XYZIRL> pointCloud;
+		std::vector<point_XYZIRL> labeledPointCloud;
+		std::vector<point_XYZIRL> filteredPoints;
+		std::string filename = files[i];
+		std::string tempPath = inputPath + filename;
 
 	    // Read point cloud 
 	 	if (!getPointCloud(tempPath, pointCloud)) {
-	 		cout << "ERROR: could not locate file." << endl;
+	 		std::cout << "ERROR: could not locate file." << std::endl;
 	 		return 0;
 	 	}
 
@@ -109,23 +113,23 @@ int main(int argc, char* argv[]) {
 
 		// Create subpointclouds and run algorithm on every subpointcloud
 		size_t chunk = ceil((double)pointCloud.size() / numSegments);
-		vector<point_XYZIRL>::iterator start = pointCloud.begin();
+		std::vector<point_XYZIRL>::iterator start = pointCloud.begin();
 		int pcl = 0;
 		int count = 0;
 		for(size_t it = 0; it < pointCloud.size(); it += chunk) {
     		
     		// Create subpointcloud
-    		vector<point_XYZIRL> sortedPointCloudOnZ(start+it, start+std::min<size_t>(it+chunk, pointCloud.size()));
+    		std::vector<point_XYZIRL> sortedPointCloudOnZ(start+it, start+std::min<size_t>(it+chunk, pointCloud.size()));
     		filteredPoints.clear();
     		sortPointCloud(sortedPointCloudOnZ, filteredPoints, true, "z");
 
     		// Extract initial seeds 
-			vector<point_XYZIRL> seeds;
-			extractInitialSeedPoints(sortedPointCloudOnZ, seeds, numLPR, seedThresh);
+			std::vector<point_XYZIRL> seeds;
+			extractInitialSeedPoints(sortedPointCloudOnZ, seeds, numLPR, seedThresh, method);
 			
-			// Start plane estimation 
+			// Estimate plane 
 			if (seeds.size()) {
-			 	for (int iter = 0; iter < numIters; iter++) {					
+			 	for (int iter = 0; iter < numIters; iter++) {	
 					//	The linear model to solve is: ax + by +cz + d = 0
 			        //   		where; N = [a b c]     X = [x y z], 
 					//		           d = -(N.transpose * X)
@@ -163,16 +167,17 @@ int main(int argc, char* argv[]) {
 						labeledPointCloud.insert(labeledPointCloud.end(), filteredPoints.begin(), filteredPoints.end());
 			        } 
 				}
-			} else cout << "No seeds extracted." << endl;
+			} else std::cout << "No seeds extracted." << std::endl;
 		}
-		cout << "Processed files: " << i + 1 << "/" << files.size() << " with " << count << " of " << labeledPointCloud.size() <<  " ground points" << endl;
+		std::cout << "Processed files: " << i + 1 << "/" << files.size() << " with " << count << " of " << labeledPointCloud.size() <<  " ground points" << std::endl;
 		sortPointCloud(labeledPointCloud, filteredPoints, false, "n"); // Sort based on the ring
 		saveToFile(labeledPointCloud, newDir, filename, true); 
 	}
 	clock_t finishTime = clock();
-	cout << " ---------------- DONE. " << endl
+	std::cout 
+		 << " ---------------- DONE. " << std::endl
 		 << "Total execution time: " 
-		 << (finishTime - startTime) / double(CLOCKS_PER_SEC) << "s" << endl; 
+		 << (finishTime - startTime) / double(CLOCKS_PER_SEC) << "s" << std::endl; 
 	return 0;
 }
 
@@ -183,16 +188,16 @@ int main(int argc, char* argv[]) {
 	   - directory (string) & name (string)
 	   - type of pointcloud (ground or not ground)
    ------------------------------------------------------------------------------------------------------------- */
-void saveToFile(const vector<point_XYZIRL>& pointCloud, string dirName, string name, bool type) {
+void saveToFile(const std::vector<point_XYZIRL>& pointCloud, std::string dirName, std::string name, bool type) {
 	int version = 0;
-	ofstream textfile;
-	string filename = dirName + "/" + name;
+	std::ofstream textfile;
+	std::string filename = dirName + "/" + name;
 	 	
 	textfile.open(filename.c_str(), std::fstream::app);
 	for (int i = 0; i < pointCloud.size(); i++) {
 		textfile << pointCloud[i].x << " " << pointCloud[i].y << " " 
 	   		     << pointCloud[i].z << " " << pointCloud[i].i << " " 
-	  		     << pointCloud[i].r << " " << pointCloud[i].l << endl;
+	  		     << pointCloud[i].r << " " << pointCloud[i].l << std::endl;
 	}
 	textfile.close();
 }
@@ -203,9 +208,9 @@ void saveToFile(const vector<point_XYZIRL>& pointCloud, string dirName, string n
 	   - Input path (string)
 	   - Vector to store filenames (vector<string>)
    ------------------------------------------------------------------------------------------------------------- */
-int getFiles(string path, vector<string>& files) {
+int getFiles(std::string path, std::vector<std::string>& files) {
 	if ((dir = opendir(path.c_str())) == NULL) {
-		cout << "Error(" << errno << ") opening " << dir << endl;
+		std::cout << "Error(" << errno << ") opening " << dir << std::endl;
 		return errno;
 	}
 	
@@ -213,12 +218,12 @@ int getFiles(string path, vector<string>& files) {
 	char *p1;
 	char *p2;
 	while((ent = readdir(dir)) != NULL) {
-		string file = ent->d_name;
+		std::string file = ent->d_name;
 		p1 = strtok(ent->d_name, ".");
 		p2 = strtok(NULL, ".");
 		if (p2 != NULL) {
 			if (strcmp(p2, "txt") == 0) {
-				files.push_back(string(file));
+				files.push_back(std::string(file));
 			}
 		}
 	}
