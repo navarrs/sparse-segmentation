@@ -23,6 +23,7 @@ Merging classes
 					  --convs mrg 
 """
 from tqdm import tqdm
+from statistics import mode
 import numpy as np
 import time as t
 import itertools
@@ -43,7 +44,7 @@ def makeDir(path, dirN, gnd):
 	while os.path.isdir(fullPath):
 		print "Directory {} exists.".format(fullPath)
 		ver += 1
-		newDir = gnd + str(ver) + "_" + dirN 
+		newDir = gnd + "_" + dirN + "_v" + str(ver)
 		fullPath = path + newDir
 	print "Creating directory {}".format(fullPath)
 	os.makedirs(fullPath)
@@ -176,6 +177,64 @@ def downSample(ipath, opath):
 
 			progressBar.update(1)
 
+def upSample(ipath, opath):
+	"""
+	Convert the .npy point cloud dataset of the VLP16 into .npy version of a VLP32. 
+	Provide input path of the name of the folder to downsample and the base name for the output 
+	path where the new datasets will be saved. 
+	"""
+	# Start the downsampling 
+	numFiles = len(os.listdir(ipath))
+	print "\nUpsampling {} point clouds from: {}".format(numFiles, ipath)
+	with tqdm(total=numFiles) as progressBar:
+		for file in os.listdir(ipath):	
+			baseFilename = file.split('.')[0]
+			basePath = ipath + file
+			pointCloud32 = np.zeros((32, 512, 6))
+			
+			pointCloud16 = np.load(basePath).astype(np.float32)
+			k = 0
+			d = 0.5
+			for i in range(pointCloud16.shape[0]):
+				interm = np.zeros((512, 6))
+				xyzirl1 = pointCloud16[i, :, :]
+				if i == pointCloud16.shape[0]-1:
+				 	xyzirl2 = np.zeros((512, 6))
+				else:
+				 	xyzirl2 = pointCloud16[i+1, :, :]
+				
+				xyzirl2[xyzirl2 == 0] = np.nan
+				xyzirl1[xyzirl1 == 0] = np.nan
+				D = np.sqrt((xyzirl2[:,2]-xyzirl1[:,2])**2 +(xyzirl2[:,1]-xyzirl1[:,1])**2) # sqrt((z2-z1)**2 + (y2-y1)**2)
+				
+				# Get X				
+				interm[:,0] = (xyzirl2[:,0]+xyzirl1[:,0]) / 2 # (x1 + x2) / 2
+				# Get Y 
+				interm[:,1] = xyzirl1[:,1] + d*(xyzirl2[:,1]-xyzirl1[:,1]) / D  # y1 + d * (y2-y1) / D
+				# Get Z 
+				interm[:,2] = xyzirl1[:,2] + d*(xyzirl2[:,2]-xyzirl1[:,2]) / D # z1 + d * (z2-z1) / D
+				# Get I 
+				interm[:,3] = (xyzirl2[:,3]+xyzirl1[:,3]) / 2 # (i1 + i2) / 2
+				# Get R
+				interm[:,4] = (xyzirl2[:,4]+xyzirl1[:,4]) / 2 # (r1 + r2) / 2				
+				xyzirl1[np.isnan(xyzirl1)] = 0
+				xyzirl2[np.isnan(xyzirl2)] = 0
+				interm[np.isnan(interm)] = 0
+
+				# Get Label 
+				label = np.column_stack((xyzirl1[:,5], xyzirl2[:,5]))
+				interm[:,5] = label.max(1)
+
+				pointCloud32[k,  :,:] = xyzirl1
+				pointCloud32[k+1,:,:] = interm
+				k += 2
+				if k == 32:
+				 	k = 0
+				npyFilename = '/' + file.split('.')[0] + '.npy'
+				np.save(opath + npyFilename, pointCloud32)
+
+			progressBar.update(1)
+
 def main():
 	# Argument parsing 
 	ap = argparse.ArgumentParser()
@@ -208,6 +267,8 @@ def main():
 		txtConvert(inPath, makeDir(outPath, outDir, label))
 	elif convType == "down":
 		downSample(inPath, outPath)
+	elif convType == "up":
+		upSample(inPath, makeDir(outPath, outDir, label))
 	elif convType == "merge":
 		mergeClass(inPath, makeDir(outPath, outDir, label), clsKeep, clsMerge)
 	else:
