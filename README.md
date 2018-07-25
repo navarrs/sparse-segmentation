@@ -1,11 +1,10 @@
 # Semantic Segmentation of Sparse Point Clouds using SqueezeSeg - RISS 2018
 
 This repository contains:
-- A C++ ground annotator of point clouds based on:
+- A C++ ground annotator of point clouds based on: 
+	Fast segmentation of 3D point clouds: a paradigm on LIDAR data 
+	By Dimitris Zermas Izzat Izzat and Nikolas Papanikolopoulos
 ```
-Fast segmentation of 3D point clouds: a paradigm on LIDAR data 
-By Dimitris Zermas Izzat Izzat and Nikolas Papanikolopoulos
-
 @inproceedings{7989591, 
 	author={D. Zermas and I. Izzat and N. Papanikolopoulos}, 
 	booktitle={2017 IEEE International Conference on Robotics and Automation (ICRA)}, 
@@ -22,11 +21,10 @@ By Dimitris Zermas Izzat Izzat and Nikolas Papanikolopoulos
 - Data upsampler to simulate VLP32 LIDAR scans from VLP16. 
 
 These scans were obtained from:
+	Squeezeseg: Convolutional neural nets with recurrent crf for real-time road-object segmentation from 3d lidar point cloud
+	By Bichen Wu, Alvin Wan, Xiangyu Yue, Kurt Keutzer
+	[SqueezeSeg](https://github.com/BichenWuUCB/SqueezeSeg) 
 ```
-Squeezeseg: Convolutional neural nets with recurrent crf for real-time road-object segmentation from 3d lidar point cloud
-By Bichen Wu, Alvin Wan, Xiangyu Yue, Kurt Keutzer
-[SqueezeSeg](https://github.com/BichenWuUCB/SqueezeSeg) 
-
 @article{wu2017squeezeseg,
     title={Squeezeseg: Convolutional neural nets with recurrent crf for real-time road-object segmentation from 3d lidar point cloud},
     author={Wu, Bichen and Wan, Alvin and Yue, Xiangyu and Keutzer, Kurt},
