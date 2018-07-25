@@ -1,0 +1,21 @@
+#ifndef COMPARE_H
+#define COMPARE_H
+
+// Helper methods to sort the vectors 
+bool compareN(point_XYZIRL& p1, point_XYZIRL& p2) {
+	return p1.n < p2.n;	
+} 
+bool compareZ(point_XYZIRL& p1, point_XYZIRL& p2) {
+	return p1.z < p2.z;
+}
+bool compareX(point_XYZIRL& p1, point_XYZIRL& p2) {
+	return p1.x < p2.x;
+}
+bool compareY(point_XYZIRL& p1, point_XYZIRL& p2) {
+	return p1.y < p2.y;
+}
+bool cmpZF(float p1, float p2) {
+	return p1 < p2;
+}
+
+#endif
