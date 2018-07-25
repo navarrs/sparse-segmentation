@@ -25,7 +25,7 @@ These scans were obtained from:
 ```
 Squeezeseg: Convolutional neural nets with recurrent crf for real-time road-object segmentation from 3d lidar point cloud
 By Bichen Wu, Alvin Wan, Xiangyu Yue, Kurt Keutzer
-[SQUEEZESEG](https://github.com/BichenWuUCB/SqueezeSeg) 
+[SqueezeSeg](https://github.com/BichenWuUCB/SqueezeSeg) 
 
 @article{wu2017squeezeseg,
     title={Squeezeseg: Convolutional neural nets with recurrent crf for real-time road-object segmentation from 3d lidar point cloud},
@@ -147,7 +147,7 @@ Upsampled 32-ring scan:
 It should create a folder called ```upsample1``` in ```./data/sample/``` where the 32-ring point clouds are saved. 
 
 ### NOTE
-More details about the pipelines can be found on my modified version of SqueezeSeg [MYSQUEEZESEG](https://github.com/IngridNavarroA/SqueezeSeg). 
+More details about the pipelines can be found on my modified version of SqueezeSeg [MySqueezeSeg](https://github.com/IngridNavarroA/SqueezeSeg). 
 
 ## TO DO:
 - [ ] Python version of the ground annotation algorithm 
